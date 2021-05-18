@@ -1,0 +1,12 @@
+NM,*
+Married,*
+leave,*
+alone,*
+Never-married,NM
+Married-civ-spouse,Married
+Married-AF-spouse,Married
+Divorced,leave
+Separated,leave
+Widowed,alone
+Married-spouse-absent,alone
+
