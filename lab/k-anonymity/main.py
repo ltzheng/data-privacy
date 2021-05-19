@@ -1,7 +1,8 @@
 import argparse
 from algorithms.samarati import samarati, Lattice
-from utils.data_loader import load_data, build_categorical_hierarchy, build_numerical_hierarchy
 from algorithms.mondrian import mondrian
+from utils.data_loader import load_data, build_categorical_hierarchy, build_numerical_hierarchy
+from utils import display_table
 
 
 def main(config):
@@ -18,23 +19,27 @@ def main(config):
         print('hierarchies:', hierarchies)
         print('heights:', heights)
         lattice = Lattice(hierarchies=hierarchies, quasi_id=data['quasi_id'], heights=heights)
-        solution, vector, sup = samarati(table=data['table'], lattice=lattice, 
+        anonymized_table, vector, sup = samarati(table=data['table'], lattice=lattice, 
                                     k=config['k'], maxsup=config['maxsup'])
 
-        print('\n====================')
         # drop the sensitive column
-        # print('final table shape:', solution.shape)
-        solution.drop(config['data']['sensitive'], axis=1, inplace=True)
-        # print('final table shape:', solution.shape)
-        print('anonymized table:\n', solution)
-        print('====================')
+        anonymized_table.drop(config['data']['sensitive'], axis=1, inplace=True)
+        # display
+        print('\n====================')
+        print('Results of samarati. k = %d, maxsup = %d' % (config['k'], config['maxsup']))
         print('generalization vector:', vector)
         print('max suppression:', sup)
-        print('====================')
-        solution.to_csv('results/samarati.csv', header=None, index=None)
+        display_table(anonymized_table)        
+        anonymized_table.to_csv('results/samarati.csv', header=None, index=None)
 
     elif config['mondrian']:
-        mondrian(table=data['table'], quasi_id=data['quasi_id'], k=config['k'])
+        anonymized_table = mondrian(table=data['table'], quasi_id=data['quasi_id'], k=config['k'])
+        # drop the sensitive column
+        anonymized_table.drop(config['data']['sensitive'], axis=1, inplace=True)
+        # display
+        print('\n====================')
+        print('Results of mondrian. k = %d' % config['k'])
+        display_table(anonymized_table)        
 
     else:
         raise NotImplementedError('Algorithm not chosen. Please add argument --samarati or --mondrian.')
