@@ -87,4 +87,4 @@ def mondrian(table, quasi_id, k, sensitive):
     print('\n====================')
     print('\nloss_metric:', loss_metric)
 
-    return anonymized_table
+    return anonymized_table, loss_metric

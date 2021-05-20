@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn import preprocessing
 
 
 def load_data(config):
@@ -15,9 +16,9 @@ def load_data(config):
     table.columns = data_config['columns']
 
     if config['samarati']:
-        quasi_id = data_config['categorical_quasi_id']
+        quasi_id = data_config['samarati_quasi_id']
     else:
-        quasi_id = data_config['numerical_quasi_id']
+        quasi_id = data_config['mondrian_quasi_id']
 
     data = {'table': table, 'quasi_id': quasi_id, 'sensitive': data_config['sensitive']}
     # print('data:', data)
@@ -109,3 +110,17 @@ def subtree_leaves(tree, root='*'):
     children = tree[root]
     leaves_num = sum([subtree_leaves(tree, r) for r in children])
     return leaves_num
+
+
+# label encoder for mondrian in categorical cases
+def preprocess_categorical_column(org_col):
+    # encode labels with value between 0 and n-1
+    encoder = preprocessing.LabelEncoder()
+    encoder.fit(org_col)
+    # return converted original column, and the encoder
+    return encoder.transform(org_col), encoder
+
+
+# return converted original column from encoded column
+def recover_categorical_mondrian(col, encoder):
+    return encoder.inverse_transform(col)

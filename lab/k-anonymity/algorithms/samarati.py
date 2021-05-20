@@ -97,9 +97,12 @@ def samarati(table, lattice, leaves_num, sensitive, k=10, maxsup=20, optimal=Fal
         else:
             low = mid + 1
 
-    if optimal:
+    if optimal:  # consider all possible vectors to get optimal solution
         all_possible_solutions = []
-        vectors = lattice.get_vectors(mid)
+        vectors = []
+        for h in range(lattice.total_height):
+            for v in lattice.get_vectors(h):
+                vectors.append(v)
         for v in vectors:
             valid, sup, anonymized_table = lattice.satisfies(vector=v, k=k, table=table, maxsup=maxsup)
             if valid:
@@ -108,19 +111,21 @@ def samarati(table, lattice, leaves_num, sensitive, k=10, maxsup=20, optimal=Fal
                                                'vector': v,
                                                'loss_metric': categorical_loss_metric(
                                                    anonymized_table.loc[:, lattice.quasi_id], 
-                                                   leaves_num, lattice.hierarchies)})
+                                                   leaves_num, lattice.hierarchies, sup)})
         # sort and select solution with minimum loss metric
+        print('\nnumber of all possible solutions:', len(all_possible_solutions))
         min_sol = sorted(all_possible_solutions, key=itemgetter('loss_metric'))[0]
+        # print('min_sol:', min_sol)
         loss_metric = min_sol['loss_metric']
         solution, satisfied_vector, final_sup = min_sol['table'],  min_sol['vector'],  min_sol['sup']
 
     else:
         # compute loss metric for the anonymized table
-        loss_metric = categorical_loss_metric(solution.loc[:, lattice.quasi_id], leaves_num, lattice.hierarchies)
+        loss_metric = categorical_loss_metric(solution.loc[:, lattice.quasi_id], leaves_num, lattice.hierarchies, final_sup)
 
     print('\n====================')
     print('\nloss_metric:', loss_metric)
     # drop the sensitive column
     solution.drop(sensitive, axis=1, inplace=True)
 
-    return solution, satisfied_vector, final_sup
+    return solution, satisfied_vector, final_sup, loss_metric
