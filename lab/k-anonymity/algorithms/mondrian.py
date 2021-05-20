@@ -81,8 +81,6 @@ def mondrian(table, quasi_id, k, sensitive):
     partition = Partition(table=table, quasi_id=quasi_id, k=k)
     partition.strict_anonymize()
     anonymized_table = partition.summary
-    # drop the sensitive column
-    anonymized_table.drop(sensitive, axis=1, inplace=True)
     loss_metric = numerical_loss_metric(anonymized_table.loc[:, quasi_id])
     print('\n====================')
     print('\nloss_metric:', loss_metric)

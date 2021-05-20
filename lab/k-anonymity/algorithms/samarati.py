@@ -115,7 +115,6 @@ def samarati(table, lattice, leaves_num, sensitive, k=10, maxsup=20, optimal=Fal
         # sort and select solution with minimum loss metric
         print('\nnumber of all possible solutions:', len(all_possible_solutions))
         min_sol = sorted(all_possible_solutions, key=itemgetter('loss_metric'))[0]
-        # print('min_sol:', min_sol)
         loss_metric = min_sol['loss_metric']
         solution, satisfied_vector, final_sup = min_sol['table'],  min_sol['vector'],  min_sol['sup']
 
@@ -125,7 +124,5 @@ def samarati(table, lattice, leaves_num, sensitive, k=10, maxsup=20, optimal=Fal
 
     print('\n====================')
     print('\nloss_metric:', loss_metric)
-    # drop the sensitive column
-    solution.drop(sensitive, axis=1, inplace=True)
 
     return solution, satisfied_vector, final_sup, loss_metric

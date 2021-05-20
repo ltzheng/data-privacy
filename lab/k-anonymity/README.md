@@ -1,6 +1,7 @@
 # K-Anonymity
 
 **郑龙韬 PB18061352**
+**5/20/2021**
 
 ## Problem Statement
 
@@ -17,11 +18,11 @@ Given a table to be generalized, every QI-cluster should contains k or more tupl
 
 ### Samarati (categorical)
 
-In [samarati.py](algorithms/samarati.py), we build a class `Lattice` and a method `samarati()`. Selected vectors are generalized and validated in methods of `Lattice`. See User Guide section for running example.
+In [samarati.py](algorithms/samarati.py), we implement a class `Lattice` and a method `samarati()`. Selected vectors are generalized and validated in methods of `Lattice`. See User Guide section for examples.
 
 ### Mondrian (numerical)
 
-In [mondrian.py](algorithms/mondrian.py), we build a class `Partition` and a method `mondrian()`. Recursive anonymization is implemented in `Partition.strict_anonymize()`. See User Guide section for running example.
+In [mondrian.py](algorithms/mondrian.py), we build a class `Partition` and a method `mondrian()`. Recursive anonymization is implemented in `Partition.strict_anonymize()`. At each timestep, the dimension to be split is randomly selected. See User Guide section for examples.
 
 ## User Guide
 
@@ -45,12 +46,12 @@ The data path, hierarchy paths and other configurations can be easily editied in
 The results will be saved in directory [results/samarati.csv](results/samarati.csv) and [results/mondrian.csv](results/mondrian.csv) in csv format.
 
 Code structure:
-- algorithms
+- algorithms:
   - [samarati.py](algorithms/mondrian.py)
   - [mondrian.py](algorithms/mondrian.py)
 - data: dataset and generalization hierarchies
-- results: where anonymized tables are saved
-- utils
+- results: directory where anonymized tables are saved
+- utils:
   - data loader
   - loss metrics
   - display table
@@ -63,7 +64,15 @@ See more argument setting description:
 python main.py --help
 ```
 
-Plot the relations between runtime/loss metric and different k/maxsup, see [plot.py](plot.py).
+To plot the relations between runtime/loss metric and different k/maxsup for Samarati and Mondrian (ranges of k and maxsup can be adjusted in the code), run [plot.py](plot.py):
+```bash
+python plot.py --samarati
+```
+or
+```bash
+python plot.py --mondrian
+```
+
 
 ## Results & Analysis
 
@@ -72,20 +81,19 @@ Run vanilla Samarati:
 python main.py --samarati --k 10 --maxsup 20
 ```
 
-Output for vanilla samarati (k=10, maxsup=20) is as follows. After `configuration`, the following 2 lines indicating the drop of rows with '?'.
+Output for vanilla samarati (k=10, maxsup=20) is as follows. After `configuration`, the following 2 lines of row count indicating the drop of rows with '?'.
 - `hierarchies` maps a value to its parent in the generalization hierarchy
 - `hierarchy heights` maps attribute names to its height in the generalization hierarchy
 - `lattice map` records vectors for each height in the lattice
 - `leaves num` records leaves in the subtree rooted by values in each attribute
 - `loss metric map` records loss metric of values in each attribute
 
-In the last part there are `loss metric`, `generalization vector`, `max suppression`, and `anonymized table` (after replacing the quasi-identifiers and droping the sensitive column, both shown in standard output and saved in [results](results) directory)
+In the last part there are `loss metric`, `generalization vector`, `max suppression`, `quasi identifiers` and `anonymized table` (after replacing the quasi-identifiers and droping the sensitive column, both shown in standard output and saved in [results](results) directory)
 
 ```
 configuration:
  {'k': 10, 'maxsup': 20, 'samarati': True, 'mondrian': False, 'optimal_samarati': False, 'data': {'path': 'data/adult.data', 'samarati_quasi_id': ['age', 
-'gender', 'race', 'marital_status'], 'mondrian_quasi_id': ['age', 'gender', 'education_num'], 'sensitive': 'occupation', 'columns': ['age', 'work_class', 
-'final_weight', 'education', 'education_num', 'marital_status', 'occupation', 'relationship', 'race', 'gender', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country', 'class'], 'samarati_generalization_type': {'age': 'range', 'gender': 'categorical', 'race': 'categorical', 'marital_status': 'categorical'}, 'hierarchies': {'age': None, 'gender': 'data/adult_gender.txt', 'race': 'data/adult_race.txt', 'marital_status': 'data/adult_marital_status.txt'}, 'mondrian_generalization_type': {'age': 'numerical', 'gender': 'categorical', 'education_num': 'numerical'}}}
+'gender', 'race', 'marital_status'], 'mondrian_quasi_id': ['age', 'education_num'], 'sensitive': 'occupation', 'columns': ['age', 'work_class', 'final_weight', 'education', 'education_num', 'marital_status', 'occupation', 'relationship', 'race', 'gender', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country', 'class'], 'samarati_generalization_type': {'age': 'range', 'gender': 'categorical', 'race': 'categorical', 'marital_status': 'categorical'}, 'hierarchies': {'age': None, 'gender': 'data/adult_gender.txt', 'race': 'data/adult_race.txt', 'marital_status': 'data/adult_marital_status.txt'}, 'mondrian_generalization_type': {'age': 'numerical', 'education_num': 'numerical'}}}
 
 row count before sanitizing: 32561
 row count sanitized: 30162
@@ -117,40 +125,21 @@ generalization vector: (1, 0, 1, 2)
 max suppression: 7
 
 ====================
-quasi identifiers in table
-             age  gender race marital_status
-0      (35, 40)    Male    *              *
-2      (35, 40)    Male    *              *
-10     (35, 40)    Male    *              *
-18     (35, 40)    Male    *              *
-22     (35, 40)    Male    *              *
-...         ...     ...  ...            ...
-19045  (80, 85)  Female    *              *
-19495  (80, 85)  Female    *              *
-19515  (80, 85)  Female    *              *
-20482  (80, 85)  Female    *              *
-26731  (80, 85)  Female    *              *
+anonymized table:
+             age  gender race marital_status         occupation
+0      (35, 40)    Male    *              *       Adm-clerical
+2      (35, 40)    Male    *              *  Handlers-cleaners
+10     (35, 40)    Male    *              *    Exec-managerial
+18     (35, 40)    Male    *              *              Sales
+22     (35, 40)    Male    *              *    Farming-fishing
+...         ...     ...  ...            ...                ...
+19045  (80, 85)  Female    *              *      Other-service
+19495  (80, 85)  Female    *              *    Exec-managerial
+19515  (80, 85)  Female    *              *      Other-service
+20482  (80, 85)  Female    *              *       Adm-clerical
+26731  (80, 85)  Female    *              *     Prof-specialty
 
-[30155 rows x 4 columns]
-====================
-
-
-====================
-anonymized table
-             age    work_class final_weight     education education_num  ... capital_gain capital_loss hours_per_week native_country  class
-0      (35, 40)     State-gov        77516     Bachelors            13  ...         2174            0             40  United-States  <=50K
-2      (35, 40)       Private       215646       HS-grad             9  ...            0            0             40  United-States  <=50K
-10     (35, 40)       Private       280464  Some-college            10  ...            0            0             80  United-States   >50K
-18     (35, 40)       Private        28887          11th             7  ...            0            0             50  United-States  <=50K
-22     (35, 40)   Federal-gov        76845           9th             5  ...            0            0             40  United-States  <=50K
-...         ...           ...          ...           ...           ...  ...          ...          ...            ...            ...    ...
-19045  (80, 85)     State-gov       132204       1st-4th             2  ...            0            0             20  United-States  <=50K
-19495  (80, 85)  Self-emp-inc       247232          10th             6  ...         2936            0             28  United-States  <=50K
-19515  (80, 85)     Local-gov        20101       HS-grad             9  ...            0            0             32  United-States  <=50K
-20482  (80, 85)       Private       202483       HS-grad             9  ...            0            0             16  United-States  <=50K
-26731  (80, 85)       Private       188328       HS-grad             9  ...            0            0             16  United-States  <=50K
-
-[30155 rows x 14 columns]
+[30155 rows x 5 columns]
 ====================
 ```
 
@@ -169,82 +158,121 @@ configuration:
 
 row count before sanitizing: 32561
 row count sanitized: 30162
+D:\2021spring\Privacy\data-privacy-ustc\lab\k-anonymity\algorithms\mondrian.py:59: SettingWithCopyWarning: 
+A value is trying to be set on a copy of a slice from a DataFrame.
+Try using .loc[row_indexer,col_indexer] = value instead
+
+See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+  self.table[dim] = [str(min_val) + '-' + str(max_val)] * self.table.shape[0]
 
 ====================
 
-loss_metric: 0.26657516685393545
+loss_metric: 0.26420934260927065
 
 ====================
-quasi identifiers in table
-          age education_num
-209       17           3-7
-262       17           3-7
-271       17           3-7
-335       17           3-7
-371       17           3-7
-...      ...           ...
-23460  67-80            16
-26033  67-80            16
-26431  67-80            16
-28153  67-80            16
-28176  67-80            16
+anonymized table:
+          age education_num       occupation
+209       17           3-7            Sales
+262       17           3-7    Other-service
+271       17           3-7    Other-service
+335       17           3-7    Other-service
+371       17           3-7    Other-service
+...      ...           ...              ...
+19861  77-90         15-16  Farming-fishing
+20483  77-90         15-16   Prof-specialty
+21835  77-90         15-16  Exec-managerial
+23868  77-90         15-16  Exec-managerial
+28176  77-90         15-16  Exec-managerial
 
-[30162 rows x 2 columns]
-====================
-
-
-====================
-anonymized table
-          age        work_class  final_weight  education education_num  ... capital_gain capital_loss hours_per_week native_country  class
-209       17           Private         65368       11th           3-7  ...            0            0             12  United-States  <=50K
-262       17           Private        245918       11th           3-7  ...            0            0             12  United-States  <=50K
-271       17           Private        191260        9th           3-7  ...         1055            0             24  United-States  <=50K
-335       17           Private        270942    5th-6th           3-7  ...            0            0             48         Mexico  <=50K
-371       17           Private         89821       11th           3-7  ...            0            0             10  United-States  <=50K
-...      ...               ...           ...        ...           ...  ...          ...          ...            ...            ...    ...
-23460  67-80           Private        230417  Doctorate            16  ...            0            0             40          China   >50K
-26033  67-80  Self-emp-not-inc        217892  Doctorate            16  ...        10605            0             35  United-States   >50K
-26431  67-80           Private        194746  Doctorate            16  ...            0            0             40           Cuba  <=50K
-28153  67-80         Local-gov        190661  Doctorate            16  ...         7896            0             50  United-States   >50K
-28176  67-80       Federal-gov         62176  Doctorate            16  ...            0            0              6  United-States   >50K
-
-[30162 rows x 14 columns]
+[30162 rows x 3 columns]
 ====================
 ```
 
 ### Runtime
 
-- Samarati runtime with different k
-  ![](figs/samarati_runtime_diff_k.png)
+- Samarati runtime with different k and maxsup:
+  ![](figs/samarati_runtime.png)
 
-- Samarati runtime with different maxsup
-  ![](figs/samarati_runtime_diff_maxsup.png)
-
-- Mondrian Runtime with different k
-  ![](figs/samarati_runtime_diff_k.png)
+- Mondrian runtime with different k:
+  ![](figs/mondrian_runtime.png)
 
 ### Loss Metric
 
-- Samarati loss metric with different k
-  ![](figs/samarati_lm_diff_k.png)
+- Samarati loss metric with different k and maxsup:
+  ![](figs/samarati_lm.png)
 
-- Samarati loss metric with different maxsup
-  ![](figs/samarati_lm_diff_maxsup.png)
+- Mondrian loss metric with different k:
+  ![](figs/mondrian_lm.png)
 
-- Mondrian loss metric with different k
-  ![](figs/samarati_lm_diff_k.png)
+According to the figures above, we can draw the conclusion that for both algorithms
+- runtime decreases as k increases
+- loss metric increases as k increases
+- for Samarati, increasing maxsup may lead to longer runtime and higher loss metric. 
+
+These results are reasonable, since **greater k results in more abstract generalization**. Therefore, the loss metric will increase. 
+
+On the other hand, the algorithm will **consider more possible cases with greater maxsup** (more tuples are allowed to be suppressed). **With greater k, the algorithm will exit earlier since it finds that there exists no satisfied tables** more quickly, so the runtime drops as k increases.
+
+Also, the trivial fluctuation in the two figures for Mondrian may result from different random seed when conducting experiments.
+
+The loss metric for categorical data is (M − 1)/(|A| − 1), where |A| represents the total number of leaf nodes in the generalization tree, and M represents the number of leaf nodes in the subtree rooted at x (generalized value in the anonymized table). 
+
+Note: **the attribute age for Samarati is generalized as categorical data rather than numerical data**. In provided dataset, there are some values like 87 and 89 is lacked. It is not suitable to calculate its loss metric as numerical one in the next passage. In this implementation, a hierarchy tree is built for age attribute, just like other categorical attributes. 
+
+For numerical data, suppose the value of a tuple has been generalized to an interval [L_i, U_i]. Letting the lower and upper bounds in the table for A be L and U. The normalized loss for this entry is given by (U_i - L_i) / (U - L). (e.g., the loss for [20 - 30] is (30 - 20) / (40 - 20) if the upper and lower bound in the attribute are 40 and 20)
+
 
 ## Discussion & Conclusion
 
-According to the figures above, we can draw the conclusion that
+In conclusion, Mondrian runs faster than Samarati, plus lower loss metric. However, numerical generalization can be regarded as a special type of categorical generalization, so Samarati can be applied to numerical data. 
+
+Though Mondrian is originally only applied for numerical data, it is possible to be extended for categorical data, as described in the next section.
+
+There may exists multiple feasible solutions for Samarati algorithm. The next section provides two approaches to find the optimal solution.
 
 ## Addition
 
 ### Optimal result for Samarati
 
-In order to find solution with best utility among all satisfied solutions found by Samarati, a convenient way is to consider all tables generated by satisfied vectors in the lattice, and select the one with the **minimum loss metric**. This part of code is also implemented in [samarati.py](algorithms/samarati.py).
+In order to find solution with best utility among all satisfied solutions found by Samarati, here represent 2 convenient approaches.
+1) Traverse all satisfied vectors in the lattice, and select the table with the **minimum loss metric**. This is implemented in [samarati.py](algorithms/samarati.py). 
+2) It is more efficient to **bi-directionally traverse the lattice starting from the height of vector provided by vanilla Samarati**. Intuitively, it's meaningless to consider a vector if it's parent in the lattice is already satisfied, which leads to higher loss metric. This pruning trick can reduce the number of nodes visited, resulting in less runtime.
+   The pseudo code is here:
+    ```
+    Build a lattice
+    excluded_list = []  # pruning non-sense search if one of parents satisfies or current node satisfies and none of successors unsatisfies
+    up_frontier = []  # maintain nodes to extend upward
+    down_frontier = []  # maintain nodes to extend downward
+    final_list = []  # final vectors to choose from (by min loss metric)
 
-The selected generalization vector is (4, 0, 0, 1), and the optimal loss metric is 1.1141447295713969, as illustrated below.
+    Consider vectors at given height by vanilla Samarati
+    add satisfied vectors to down_frontier
+    add unsatisfied vectors to up_frontier
+    while up_frontier:
+      v = pop one from the up_frontier
+      if v is satisfied:
+        Add v to final_list
+        Add the satisfied successor to the excluded_list
+        Stop traversing the successor's successor  # pruning
+      else:
+        Add all of its successors to up_frontier
+      end if
+    end while
+    while down_frontier:
+      v = pop one from the down_frontier
+      if v is satisfied and none of v's parents is so:
+        Add it to the final_list
+        Add all parents to the excluded_list  # pruning
+      else:
+        Add all of its parents to the down_frontier
+      end if
+    end while
+
+    Select the table with the minimum loss metric from the final list.
+    ```
+
+
+The selected optimal generalization vector is (4, 0, 0, 1), and the optimal loss metric is 1.1141447295713969, as illustrated below.
 
 
 Run:
@@ -252,11 +280,10 @@ Run:
 python main.py --samarati --k 10 --maxsup 20 --optimal-samarati
 ```
 
-Output for optimal samarati:
+Output for optimal samarati (approach #1):
 
 ```
-... # contents above are similar to vanilla samarati's output, omitted here
-...
+... # omitted contents above are similar to vanilla samarati's output
 
 number of all possible solutions: 19
 
@@ -267,40 +294,21 @@ generalization vector: (4, 0, 0, 1)
 max suppression: 13
 
 ====================
-quasi identifiers in table
-       age  gender   race marital_status
-0       *    Male  White             NM
-16      *    Male  White             NM
-17      *    Male  White             NM
-26      *    Male  White             NM
-30      *    Male  White             NM
-...    ..     ...    ...            ...
-21131   *  Female  Other          alone
-22376   *  Female  Other          alone
-24046   *  Female  Other          alone
-28683   *  Female  Other          alone
-31873   *  Female  Other          alone
+anonymized table:
+       age  gender   race marital_status         occupation
+0       *    Male  White             NM       Adm-clerical
+16      *    Male  White             NM    Farming-fishing
+17      *    Male  White             NM  Machine-op-inspct
+26      *    Male  White             NM       Craft-repair
+30      *    Male  White             NM    Protective-serv
+...    ..     ...    ...            ...                ...
+21131   *  Female  Other          alone      Other-service
+22376   *  Female  Other          alone      Other-service
+24046   *  Female  Other          alone  Machine-op-inspct
+28683   *  Female  Other          alone              Sales
+31873   *  Female  Other          alone      Other-service
 
-[30149 rows x 4 columns]
-====================
-
-
-====================
-anonymized table
-       age        work_class final_weight     education education_num  ... capital_gain capital_loss hours_per_week      native_country  class
-0       *         State-gov        77516     Bachelors            13  ...         2174            0             40       United-States  <=50K
-16      *  Self-emp-not-inc       176756       HS-grad             9  ...            0            0             35       United-States  <=50K
-17      *           Private       186824       HS-grad             9  ...            0            0             40       United-States  <=50K
-26      *           Private       168294       HS-grad             9  ...            0            0             40       United-States  <=50K
-30      *         Local-gov       190709    Assoc-acdm            12  ...            0            0             52       United-States  <=50K
-...    ..               ...          ...           ...           ...  ...          ...          ...            ...                 ...    ...
-21131   *           Private       247276       7th-8th             4  ...            0            0             30       United-States  <=50K
-22376   *           Private       161857       HS-grad             9  ...            0            0             40            Columbia  <=50K
-24046   *           Private       130620       7th-8th             4  ...            0            0             40  Dominican-Republic  <=50K
-28683   *           Private        95566  Some-college            10  ...            0            0             22  Dominican-Republic  <=50K
-31873   *           Private        95566       1st-4th             2  ...            0            0             35  Dominican-Republic  <=50K
-
-[30149 rows x 14 columns]
+[30149 rows x 5 columns]
 ====================
 ```
 
@@ -321,12 +329,18 @@ python main.py --mondrian --k 10
 
 Output:
 ```
+configuration:
+ {'k': 10, 'maxsup': 20, 'samarati': False, 'mondrian': True, 'optimal_samarati': False, 'data': {'path': 'data/adult.data', 'samarati_quasi_id': ['age', 'gender', 'race', 'marital_status'], 'mondrian_quasi_id': ['age', 'gender', 'education_num'], 'sensitive': 'occupation', 'columns': ['age', 'work_class', 'final_weight', 'education', 'education_num', 'marital_status', 'occupation', 'relationship', 'race', 'gender', 'capital_gain', 'capital_loss', 'hours_per_week', 'native_country', 'class'], 'samarati_generalization_type': {'age': 'range', 'gender': 'categorical', 'race': 'categorical', 'marital_status': 'categorical'}, 'hierarchies': {'age': None, 'gender': 'data/adult_gender.txt', 'race': 'data/adult_race.txt', 'marital_status': 'data/adult_marital_status.txt'}, 'mondrian_generalization_type': {'age': 'numerical', 'gender': 'categorical', 'education_num': 'numerical'}}}    
+
+row count before sanitizing: 32561
+row count sanitized: 30162
+
 ====================
 
-loss_metric: 1.1991467082321674
+loss_metric: 1.1994430683139055
 
 ====================
-qi in table
+quasi iden in table
           age gender education_num
 209       17    0-1           3-7
 262       17    0-1           3-7
@@ -334,11 +348,11 @@ qi in table
 335       17    0-1           3-7
 371       17    0-1           3-7
 ...      ...    ...           ...
-19861  70-80    0-1            16
-20285  70-80    0-1            16
-20483  70-80    0-1            16
-21473  70-80    0-1            16
-28176  70-80    0-1            16
+20483  68-80    0-1            16
+21473  68-80    0-1            16
+23460  68-80    0-1            16
+26431  68-80    0-1            16
+28176  68-80    0-1            16
 
 [30162 rows x 3 columns]
 ====================
@@ -346,19 +360,25 @@ qi in table
 
 ====================
 anonymized table
-          age        work_class  final_weight  education education_num  ... capital_gain capital_loss hours_per_week native_country  class
-209       17           Private         65368       11th           3-7  ...            0            0             12  United-States  <=50K
-262       17           Private        245918       11th           3-7  ...            0            0             12  United-States  <=50K
-271       17           Private        191260        9th           3-7  ...         1055            0             24  United-States  <=50K
-335       17           Private        270942    5th-6th           3-7  ...            0            0             48         Mexico  <=50K
-371       17           Private         89821       11th           3-7  ...            0            0             10  United-States  <=50K
-...      ...               ...           ...        ...           ...  ...          ...          ...            ...            ...    ...
-19861  70-80      Self-emp-inc         84979  Doctorate            16  ...        20051            0             40  United-States   >50K
-20285  70-80      Self-emp-inc        272896  Doctorate            16  ...            0            0             40  United-States   >50K
-20483  70-80         Local-gov        146244  Doctorate            16  ...            0            0             40  United-States  <=50K
-21473  70-80  Self-emp-not-inc        173929  Doctorate            16  ...            0            0             25  United-States   >50K
-28176  70-80       Federal-gov         62176  Doctorate            16  ...            0            0              6  United-States   >50K
+          age        work_class  final_weight  education  ... capital_loss hours_per_week native_country  class
+209       17           Private         65368       11th  ...            0             12  United-States  <=50K
+262       17           Private        245918       11th  ...            0             12  United-States  <=50K
+271       17           Private        191260        9th  ...            0             24  United-States  <=50K
+335       17           Private        270942    5th-6th  ...            0             48         Mexico  <=50K
+371       17           Private         89821       11th  ...            0             10  United-States  <=50K
+...      ...               ...           ...        ...  ...          ...            ...            ...    ...
+20483  68-80         Local-gov        146244  Doctorate  ...            0             40  United-States  <=50K
+21473  68-80  Self-emp-not-inc        173929  Doctorate  ...            0             25  United-States   >50K
+23460  68-80           Private        230417  Doctorate  ...            0             40          China   >50K
+26431  68-80           Private        194746  Doctorate  ...            0             40           Cuba  <=50K
+28176  68-80       Federal-gov         62176  Doctorate  ...            0              6  United-States   >50K
 
-[30162 rows x 14 columns]
+[30162 rows x 15 columns]
 ====================
 ```
+
+## References
+1) Samarati P. Protecting respondents identities in microdata release[J]. IEEE transactions on Knowledge and Data Engineering, 2001. 
+2) LeFevre K, DeWitt D J, Ramakrishnan R. Mondrian multidimensional k-anonymity[C]. (ICDE'06). IEEE, 2006.
+3) V. S. Iyengar, "Transforming data to satisfy privacy constraints" in ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 2002.
+4) **Methodology, Ethics and Practice of Data Privacy** Course at University of Science and Technology of China. 2021 Spring. (**Lecturer: Prof. Lan Zhang**).

@@ -28,7 +28,7 @@ def main(config):
         # display
         print('generalization vector:', vector)
         print('max suppression:', sup)
-        display_table(anonymized_table[data['quasi_id']], name='quasi identifiers in table')
+        anonymized_table = anonymized_table[data['quasi_id'] + [data['sensitive']]]
         display_table(anonymized_table)
         # save to file      
         anonymized_table.to_csv('results/samarati.csv', header=None, index=None)
@@ -54,7 +54,7 @@ def main(config):
                 table[attr] = recover_categorical_mondrian(table[attr].tolist(), encoders[attr])
 
         # display
-        display_table(anonymized_table[data['quasi_id']], name='quasi identifiers in table')
+        anonymized_table = anonymized_table[data['quasi_id'] + [data['sensitive']]]
         display_table(anonymized_table)        
         # save to file      
         anonymized_table.to_csv('results/mondrian.csv', header=None, index=None)

@@ -1,6 +1,6 @@
-def display_table(table, name='anonymized table'):
+def display_table(table):
     print('\n====================')
-    print(name, '\n', table)
+    print('anonymized table:\n', table)
     print('====================\n')
 
 
