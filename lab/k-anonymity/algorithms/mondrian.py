@@ -1,6 +1,7 @@
 from statistics import median
 import random
 import pandas as pd
+from utils.loss_metrics import numerical_loss_metric
 
 
 class Partition:
@@ -76,7 +77,14 @@ class Partition:
         return self.summary
 
 
-def mondrian(table, quasi_id, k):
+def mondrian(table, quasi_id, k, sensitive):
     partition = Partition(table=table, quasi_id=quasi_id, k=k)
     partition.strict_anonymize()
-    return partition.summary
+    anonymized_table = partition.summary
+    # drop the sensitive column
+    anonymized_table.drop(sensitive, axis=1, inplace=True)
+    loss_metric = numerical_loss_metric(anonymized_table.loc[:, quasi_id])
+    print('\n====================')
+    print('\nloss_metric:', loss_metric)
+
+    return anonymized_table

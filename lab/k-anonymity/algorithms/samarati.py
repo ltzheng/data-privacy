@@ -1,5 +1,7 @@
 from itertools import product
 import pandas as pd
+from utils.loss_metrics import categorical_loss_metric
+from operator import itemgetter
 
 
 class Lattice():
@@ -19,7 +21,7 @@ class Lattice():
             temp = sum(dist)
             if temp <= self.total_height:
                 lattice_map[temp].append(dist)
-        print('lattice_map:', lattice_map)
+        print('\nlattice_map:\n', lattice_map)
         return lattice_map
     
     def get_vectors(self, height):
@@ -37,7 +39,7 @@ class Lattice():
         for attribute, gen_level in zip(self.quasi_id, vector):
             col = [str(elem) for elem in list(table[attribute])]
             # find the ancestors for generalization
-            ancestors = {k: k for k in [str(elem) for elem in list(set(col))]}
+            ancestors = {k: k for k in [elem for elem in list(set(col))]}
             for k in ancestors.keys():
                 for _ in range(gen_level):
                     ancestors[k] = self.hierarchies[attribute][ancestors[k]]
@@ -54,13 +56,15 @@ class Lattice():
         while sup <= maxsup and not table.empty:
             first_row = table.loc[table.index[0], self.quasi_id]
             row_counts = table.shape[0]
-            # Note: hard-coded quasi-identifier conditions here, need to be changed for other datasets
-            conditions = (table['age'] != first_row['age']) | (table['gender'] != first_row['gender']) | \
-                (table['race'] != first_row['race']) | (table['marital_status'] != first_row['marital_status'])
-            # tuples same as 1st row are deleted
+            # delete tuples with same qi values as the 1st row
+            conditions = False
+            for attr in self.quasi_id:  # at least 1 qi is different
+                conditions |= (table[attr] != first_row[attr])
+            # suppress unsatisfied tuples
             residual_table = table[~conditions]
             table = table[conditions]
             new_row_counts = table.shape[0]
+            # judge maxsup
             delta = row_counts - new_row_counts
             if (delta < k):
                 sup += delta
@@ -70,13 +74,12 @@ class Lattice():
         return sup <= maxsup, anonymized_table, sup
 
 
-def samarati(table, lattice, k=10, maxsup=20):
+def samarati(table, lattice, leaves_num, sensitive, k=10, maxsup=20, optimal=False):
     low = 0
     high = lattice.total_height
     satisfied_vector = lattice.get_vectors(lattice.total_height)[0]
     solution = lattice.generalization(table=table, vector=satisfied_vector)
     final_sup = None
-    # print('initial solution:\n', solution)
     while low < high:
         mid = int((low + high) / 2)
         vectors = lattice.get_vectors(mid)
@@ -84,9 +87,6 @@ def samarati(table, lattice, k=10, maxsup=20):
         for v in vectors:
             valid, sup, anonymized_table = lattice.satisfies(vector=v, k=k, table=table, maxsup=maxsup)
             if valid:
-                print('====================')
-                print('satisfied vector:', v)
-                print('maxsup:', sup)
                 satisfied_vector = v
                 final_sup = sup
                 solution = anonymized_table
@@ -96,5 +96,31 @@ def samarati(table, lattice, k=10, maxsup=20):
             high = mid
         else:
             low = mid + 1
+
+    if optimal:
+        all_possible_solutions = []
+        vectors = lattice.get_vectors(mid)
+        for v in vectors:
+            valid, sup, anonymized_table = lattice.satisfies(vector=v, k=k, table=table, maxsup=maxsup)
+            if valid:
+                all_possible_solutions.append({'table': anonymized_table,
+                                               'sup': sup,
+                                               'vector': v,
+                                               'loss_metric': categorical_loss_metric(
+                                                   anonymized_table.loc[:, lattice.quasi_id], 
+                                                   leaves_num, lattice.hierarchies)})
+        # sort and select solution with minimum loss metric
+        min_sol = sorted(all_possible_solutions, key=itemgetter('loss_metric'))[0]
+        loss_metric = min_sol['loss_metric']
+        solution, satisfied_vector, final_sup = min_sol['table'],  min_sol['vector'],  min_sol['sup']
+
+    else:
+        # compute loss metric for the anonymized table
+        loss_metric = categorical_loss_metric(solution.loc[:, lattice.quasi_id], leaves_num, lattice.hierarchies)
+
+    print('\n====================')
+    print('\nloss_metric:', loss_metric)
+    # drop the sensitive column
+    solution.drop(sensitive, axis=1, inplace=True)
 
     return solution, satisfied_vector, final_sup

@@ -1,45 +1,46 @@
 import argparse
 from algorithms.samarati import samarati, Lattice
 from algorithms.mondrian import mondrian
-from utils.data_loader import load_data, build_categorical_hierarchy, build_numerical_hierarchy
+from utils.data_loader import load_data, build_categorical_hierarchy, build_range_hierarchy
 from utils import display_table
 
 
 def main(config):
     data = load_data(config=config)
     if config['samarati']:
-        hierarchies = {}
-        heights = {}
+        hierarchies, heights, leaves_num = {}, {}, {}
         for attr, path in config['data']['hierarchies'].items():
             if config['data']['generalization_type'][attr] == 'categorical':
-                hierarchies[attr], heights[attr] = build_categorical_hierarchy(path)
+                hierarchies[attr], heights[attr], leaves_num[attr] = build_categorical_hierarchy(path)
             else:  # range generalization
-                hierarchies[attr], heights[attr] = build_numerical_hierarchy(data['table'][attr])
+                hierarchies[attr], heights[attr], leaves_num[attr] = build_range_hierarchy(data['table'][attr])
             
-        print('hierarchies:', hierarchies)
-        print('heights:', heights)
+        print('\nhierarchies:\n', hierarchies)
+        print('\nhierarchy heights:\n', heights)
+        print('\nsubtree leaves number for loss metric:\n', leaves_num)
+        # print('max_range:', max_range)
         lattice = Lattice(hierarchies=hierarchies, quasi_id=data['quasi_id'], heights=heights)
         anonymized_table, vector, sup = samarati(table=data['table'], lattice=lattice, 
-                                    k=config['k'], maxsup=config['maxsup'])
+                                                    k=config['k'], maxsup=config['maxsup'], 
+                                                    optimal=config['optimal_samarati'],
+                                                    leaves_num=leaves_num,
+                                                    sensitive=config['data']['sensitive'])
 
-        # drop the sensitive column
-        anonymized_table.drop(config['data']['sensitive'], axis=1, inplace=True)
         # display
-        print('\n====================')
-        print('Results of samarati. k = %d, maxsup = %d' % (config['k'], config['maxsup']))
         print('generalization vector:', vector)
         print('max suppression:', sup)
-        display_table(anonymized_table)        
+        display_table(anonymized_table)
+        # save to file      
         anonymized_table.to_csv('results/samarati.csv', header=None, index=None)
 
     elif config['mondrian']:
-        anonymized_table = mondrian(table=data['table'], quasi_id=data['quasi_id'], k=config['k'])
-        # drop the sensitive column
-        anonymized_table.drop(config['data']['sensitive'], axis=1, inplace=True)
+        anonymized_table = mondrian(table=data['table'], quasi_id=data['quasi_id'], 
+                                    k=config['k'], sensitive=config['data']['sensitive'])
+        
         # display
-        print('\n====================')
-        print('Results of mondrian. k = %d' % config['k'])
         display_table(anonymized_table)        
+        # save to file      
+        anonymized_table.to_csv('results/mondrian.csv', header=None, index=None)
 
     else:
         raise NotImplementedError('Algorithm not chosen. Please add argument --samarati or --mondrian.')
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument("--maxsup", default=20, type=int)
     parser.add_argument("--samarati", action='store_true')
     parser.add_argument("--mondrian", action='store_true')
+    parser.add_argument("--optimal_samarati", action='store_true')
 
     config = vars(parser.parse_args())
     config['data'] = {
@@ -71,13 +73,13 @@ if __name__ == '__main__':
                     'capital_gain', 'capital_loss', 'hours_per_week', 
                     'native_country', 'class'],
         'generalization_type': {
-            'age': 'numerical',
+            'age': 'range',
             'gender': 'categorical',
             'race': 'categorical',
             'marital_status': 'categorical',
         },
     }
-    print('config:', config)
+    print('\nconfiguration:\n', config)
 
     
     main(config)

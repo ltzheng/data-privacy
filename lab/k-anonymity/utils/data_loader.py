@@ -7,7 +7,7 @@ def load_data(config):
     table = pd.read_csv(data_config['path'], header=None, skipinitialspace=True)
 
     # drop rows containing '?'
-    print('row count before sanitizing:', table.shape[0])  # 32561
+    print('\nrow count before sanitizing:', table.shape[0])  # 32561
     table = table[~table.isin(['?']).any(axis=1)]
     print('row count sanitized:', table.shape[0])  # 30162
 
@@ -29,39 +29,68 @@ def build_categorical_hierarchy(path):
     hierarchy.columns = ['child', 'parent']
     children = hierarchy['child'].tolist()
     parents = hierarchy['parent'].unique().tolist()
+    # build tree (map parent to children)
     tree = {k: hierarchy.loc[hierarchy['parent'] == k]['child'].tolist() for k in parents}
-    # print('tree:', tree)
+    # count number of leaves for all subtree (for loss metric)
+    leaves_num = {k: subtree_leaves(tree, k) for k in parents}
+    # get height of tree (for lattice)
     height = get_tree_height(tree)
+    # build inversed tree (map children to parent)
     inversed_tree = {}
     for index, row in hierarchy.iterrows():
         inversed_tree[row['child']] = row['parent']
-    return inversed_tree, height
+    return inversed_tree, height, leaves_num
 
 
 # builder for hierarchies with range generalization
-def build_numerical_hierarchy(attribute_column, ranges=[5, 10, 20]):
+def build_range_hierarchy(attribute_column, ranges=[5, 10, 20]):
     height = len(ranges) + 1  # including * generalization
     column = list(attribute_column)
     inversed_tree = {}
+    leaves_num = {}
+    visited = []
 
     for i, r in enumerate(ranges):
-        if i == 0:
+        if i == 0:  # generalize original values
             pairs = []
             for num in column:
-                pair = (r * int(num / r), r * (int(num / r) + 1))
-                pairs.append(pair)
-                inversed_tree[str(num)] = str(pair)
-        else:
+                if num not in visited:
+                    # left closed, right open
+                    pair = (r * int(num / r), r * (int(num / r) + 1))
+                    pairs.append(pair)
+                    inversed_tree[str(num)] = str(pair)
+
+                    visited.append(num)
+                    if str(pair) not in leaves_num.keys():
+                        leaves_num[str(pair)] = 1
+                    else:
+                        leaves_num[str(pair)] += 1
+        else:  # generalize range values
             new_pairs = []
             for pair in pairs:
-                p = (r * int(pair[0] / r), r * (int(pair[0] / r) + 1))
-                new_pairs.append(p)
-                inversed_tree[str(pair)] = str(p)
+                if str(pair) not in visited:
+                    p = (r * int(pair[0] / r), r * (int(pair[0] / r) + 1))
+                    new_pairs.append(p)
+                    inversed_tree[str(pair)] = str(p)
+                    
+                    visited.append(str(pair))
+                    if str(p) not in leaves_num.keys():
+                        leaves_num[str(p)] = leaves_num[str(pair)]
+                    else:
+                        leaves_num[str(p)] += leaves_num[str(pair)]
             pairs = new_pairs
-        for pair in pairs:
+
+    for pair in pairs:  # root generalization
+        if str(pair) not in visited:
             inversed_tree[str(pair)] = '*'
 
-    return inversed_tree, height
+            visited.append(str(pair))
+            if '*' not in leaves_num.keys():
+                leaves_num['*'] = leaves_num[str(pair)]
+            else:
+                leaves_num['*'] += leaves_num[str(pair)]
+
+    return inversed_tree, height, leaves_num
 
 
 def get_tree_height(tree, root='*'):
@@ -71,3 +100,12 @@ def get_tree_height(tree, root='*'):
         height += 1
         pointer = tree[pointer][0]
     return height
+
+
+# get the number of leaves for the subtree with given root
+def subtree_leaves(tree, root='*'):
+    if root not in tree.keys():
+        return 1
+    children = tree[root]
+    leaves_num = sum([subtree_leaves(tree, r) for r in children])
+    return leaves_num
