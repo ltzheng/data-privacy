@@ -191,17 +191,21 @@ anonymized table:
 ### Runtime
 
 - Samarati runtime with different k and maxsup:
+
   ![](figs/samarati_runtime.png)
 
 - Mondrian runtime with different k:
+
   ![](figs/mondrian_runtime.png)
 
 ### Loss Metric
 
 - Samarati loss metric with different k and maxsup:
+
   ![](figs/samarati_lm.png)
 
 - Mondrian loss metric with different k:
+
   ![](figs/mondrian_lm.png)
 
 According to the figures above, we can draw the conclusion that for both algorithms
