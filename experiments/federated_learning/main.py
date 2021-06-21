@@ -66,7 +66,6 @@ if __name__ == '__main__':
         print("Round {:3d}, Testing accuracy: {:.2f}".format(iter, acc_test))
         
     # testing
-
     acc_train, loss_train = server.test(dataset_train)
     acc_test, loss_test = server.test(dataset_test)
     print("Training accuracy: {:.2f}".format(acc_train))

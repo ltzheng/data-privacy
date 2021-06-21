@@ -3,6 +3,7 @@ from torch import nn, autograd
 from torch.utils.data import DataLoader, Dataset
 from models.Nets import CNNMnist
 import copy
+from paillier_test import enc, dec
 
 class DatasetSplit(Dataset):
     def __init__(self, dataset, idxs):
@@ -24,6 +25,8 @@ class Client():
         self.ldr_train = DataLoader(DatasetSplit(dataset, idxs), batch_size=self.args.local_bs, shuffle=True)
         self.model = CNNMnist(args=args).to(args.device)
         self.model.load_state_dict(w)
+        # DP hyperparameters
+        self.C = self.args.C
         
     def train(self):
         w_old = copy.deepcopy(self.model.state_dict())
@@ -50,22 +53,28 @@ class Client():
         if self.args.mode == 'plain':
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
+                
+        elif self.args.mode == 'DP':  # DP mechanism
+            for k in w_new.keys():
+                update_w[k] = w_new[k] - w_old[k]
+                # L2-norm
+                sensitivity = torch.norm(update_w[k], p=2)
+                # clip
+                update_w[k] = update_w[k] / max(1, sensitivity / self.C)
 
-        '''
-        1. part one
-            DP mechanism
-        2. part two
-            Paillier enc
-        '''
+        elif self.args.mode == 'Paillier':  # Paillier encryption
+            for k in w_new.keys():
+                update_w[k] = w_new[k] - w_old[k]
+                update_w[k] = enc(update_w[k])
+        else:
+            raise NotImplementedError
+
         return update_w, sum(batch_loss) / len(batch_loss)
 
     def update(self, w_glob):
-        if self.args.mode == 'plain':
+        if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
-        
-        '''
-        1. part one
-            DP mechanism
-        2. part two
-            Paillier dec
-        '''
+        elif self.args.mode == 'Paillier':  # Paillier decryption
+            self.model.load_state_dict(dec(w_glob))
+        else:
+            raise NotImplementedError
