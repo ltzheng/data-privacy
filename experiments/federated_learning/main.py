@@ -19,8 +19,8 @@ def create_client_server():
     clients, all_idxs = [], [i for i in range(len(dataset_train))]
     net_glob = CNNMnist(args=args).to(args.device)
 
-    #平分训练数据，i.i.d.
-    #初始化同一个参数的模型
+    # divide training data, i.i.d.
+    # init models with same parameters
     for i in range(args.num_users):
         new_idxs = set(np.random.choice(all_idxs, num_items, replace=False))
         all_idxs = list(set(all_idxs) - new_idxs)
