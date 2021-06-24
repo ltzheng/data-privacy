@@ -72,12 +72,13 @@ class Client():
                 update_w[k] = w_new[k] - w_old[k]
                 origin_shape = list(update_w[k].size())
                 # flatten update weight
-                update_w[k] = update_w[k].view(1, -1)
+                list_w = update_w[k].view(-1).cpu().tolist()
                 # encryption
-                for i, elem in enumerate(update_w[k]):
-                    update_w[k][i] = self.pub_key.encrypt(elem)
+                for i, elem in enumerate(list_w):
+                    print('elem:', elem)
+                    list_w[i] = self.public_key.encrypt(elem)
                 # reshape to original one
-                update_w[k] = update_w[k].view(*origin_shape)
+                update_w[k] = torch.FloatTensor(list_w).to(self.args.device).view(*origin_shape)
         else:
             raise NotImplementedError
 
@@ -90,7 +91,7 @@ class Client():
             for k in w_glob.keys():
                 origin_shape = list(w_glob[k].size())
                 # flatten global weight
-                w_glob[k] = w_glob[k].view(1, -1)
+                w_glob[k] = w_glob[k].view(-1)
                 # decryption
                 for i, elem in enumerate(w_glob[k]):
                     w_glob[k][i] = self.priv_key.decrypt(elem)
