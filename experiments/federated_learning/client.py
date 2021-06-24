@@ -74,7 +74,7 @@ class Client():
                 list_w = update_w[k].view(-1).cpu().tolist()
                 # encryption
                 for i, elem in enumerate(list_w):
-                    list_w[i] = self.public_key.encrypt(elem)
+                    list_w[i] = self.pub_key.encrypt(elem)
                 update_w[k] = list_w
         else:
             raise NotImplementedError
