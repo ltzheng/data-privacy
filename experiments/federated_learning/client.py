@@ -3,6 +3,7 @@ from torch import nn, autograd
 from torch.utils.data import DataLoader, Dataset
 from models.Nets import CNNMnist
 import copy
+import time
 from phe import paillier
 
 global_pub_key, global_priv_key = paillier.generate_paillier_keypair()
@@ -68,6 +69,8 @@ class Client():
                 update_w[k] = update_w[k] / max(1, sensitivity / self.C)
 
         elif self.args.mode == 'Paillier':  # Paillier encryption
+            print('encrypting...')
+            enc_start = time.time()
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
                 # flatten weight
@@ -76,6 +79,8 @@ class Client():
                 for i, elem in enumerate(list_w):
                     list_w[i] = self.pub_key.encrypt(elem)
                 update_w[k] = list_w
+            enc_end = time.time()
+            print('Encryption time:', enc_end - enc_start)
         else:
             raise NotImplementedError
 
@@ -86,13 +91,17 @@ class Client():
             self.model.load_state_dict(w_glob)
         elif self.args.mode == 'Paillier':  # Paillier decryption
             # w_glob is update_w_avg here
+            print('decrypting...')
+            dec_start = time.time()
             for k in w_glob.keys():
                 # decryption
                 for i, elem in enumerate(w_glob[k]):
                     w_glob[k][i] = self.priv_key.decrypt(elem)
                 # reshape to original and update
                 origin_shape = list(self.model.state_dict()[k].size())
-                torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
+                w_glob[k] = torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
                 self.model.state_dict()[k] += w_glob[k]
+            dec_end = time.time()
+            print('Decryption time:', dec_end - dec_start)
         else:
             raise NotImplementedError
