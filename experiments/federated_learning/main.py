@@ -1,5 +1,5 @@
 import numpy as np
-# from numpy.lib.function_base import gradient
+import time
 import torch
 from torchvision import datasets, transforms, utils
 from models.Nets import CNNMnist
@@ -7,6 +7,8 @@ from options import args_parser
 from client import *
 from server import *
 import copy
+from termcolor import colored
+import matplotlib.pyplot as plt
 
 def load_dataset():
     trans_mnist = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -31,6 +33,7 @@ def create_client_server():
 
     return clients, server
 
+
 if __name__ == '__main__':
 
     args = args_parser()
@@ -43,9 +46,20 @@ if __name__ == '__main__':
     print("clients and server initialization...")
     clients, server = create_client_server()
 
+    # statistics for plot
+    all_acc_train = []
+    all_acc_test = []
+    all_loss_glob = []
+
     # training
     print("start training...")
-    for iter in range(args.epochs):
+    print('Algorithm:', colored(args.mode, 'green'))
+    # Paillier is too slow, train only 1 epoch as demo
+    num_epochs = 1 if args.mode == 'Paillier' else args.epochs
+
+    for iter in range(num_epochs):
+        epoch_start = time.time()
+
         server.clients_update_w, server.clients_loss = [], []
         for idx in range(args.num_users):
             update_w, loss = clients[idx].train()
@@ -58,15 +72,29 @@ if __name__ == '__main__':
         # update local weights
         for idx in range(args.num_users):
             clients[idx].update(w_glob)
+        
+        epoch_end = time.time()
+        print(colored('=====Epoch {:3d}====='.format(iter), 'yellow'))
+        print('Training time:', epoch_end - epoch_start)
 
-        # print loss
+        # testing
         acc_train, loss_train = server.test(dataset_train)
         acc_test, loss_test = server.test(dataset_test)
-        print('Round {:3d}, Training average loss {:.3f}'.format(iter, loss_glob))
-        print("Round {:3d}, Testing accuracy: {:.2f}".format(iter, acc_test))
-        
-    # testing
-    acc_train, loss_train = server.test(dataset_train)
-    acc_test, loss_test = server.test(dataset_test)
-    print("Training accuracy: {:.2f}".format(acc_train))
-    print("Testing accuracy: {:.2f}".format(acc_test))
+        print("Training accuracy: {:.2f}".format(acc_train))
+        print("Testing accuracy: {:.2f}".format(acc_test))
+        print('Training average loss {:.3f}'.format(loss_glob))
+        all_acc_train.append(acc_train)
+        all_acc_test.append(acc_test)
+        all_loss_glob.append(loss_glob)
+
+    # plot learning curve
+    x = np.linspace(0, num_epochs - 1, num_epochs)
+    f, (ax1, ax2, ax3) = plt.subplots(1, 3)
+    ax1.plot(x, all_acc_train)
+    ax1.set_title('Train accuracy')
+    ax2.plot(x, all_acc_test)
+    ax2.set_title('Train accuracy')
+    ax3.plot(x, all_loss_glob)
+    ax3.set_title('Training average loss')
+    plt.savefig(args.mode + 'training_curve.png')
+    plt.show()
