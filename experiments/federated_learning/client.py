@@ -70,15 +70,12 @@ class Client():
         elif self.args.mode == 'Paillier':  # Paillier encryption
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
-                origin_shape = list(update_w[k].size())
-                # flatten update weight
+                # flatten weight
                 list_w = update_w[k].view(-1).cpu().tolist()
                 # encryption
                 for i, elem in enumerate(list_w):
-                    print('elem:', elem)
                     list_w[i] = self.public_key.encrypt(elem)
-                # reshape to original one
-                update_w[k] = torch.FloatTensor(list_w).to(self.args.device).view(*origin_shape)
+                update_w[k] = list_w
         else:
             raise NotImplementedError
 
@@ -88,15 +85,14 @@ class Client():
         if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
         elif self.args.mode == 'Paillier':  # Paillier decryption
+            # w_glob is update_w_avg here
             for k in w_glob.keys():
-                origin_shape = list(w_glob[k].size())
-                # flatten global weight
-                w_glob[k] = w_glob[k].view(-1)
                 # decryption
                 for i, elem in enumerate(w_glob[k]):
                     w_glob[k][i] = self.priv_key.decrypt(elem)
-                # reshape to original one
-                w_glob[k] = w_glob[k].view(*origin_shape)
-            self.model.load_state_dict(w_glob)
+                # reshape to original and update
+                origin_shape = list(self.model.state_dict()[k].size())
+                torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
+                self.model.state_dict()[k] += w_glob[k]
         else:
             raise NotImplementedError

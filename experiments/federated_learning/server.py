@@ -23,6 +23,7 @@ class Server():
                     update_w_avg[k] += self.clients_update_w[i][k]
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
                 self.model.state_dict()[k] += update_w_avg[k]   
+            return copy.deepcopy(self.model.state_dict()), sum(self.clients_loss) / len(self.clients_loss)
 
         elif self.args.mode == 'DP':  # DP mechanism
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
@@ -33,19 +34,19 @@ class Server():
                 update_w_avg[k] += torch.normal(0, self.sigma**2 * self.C**2, update_w_avg[k].shape).to(self.args.device)
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
                 self.model.state_dict()[k] += update_w_avg[k]
+            return copy.deepcopy(self.model.state_dict()), sum(self.clients_loss) / len(self.clients_loss)
 
         elif self.args.mode == 'Paillier':
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
             for k in update_w_avg.keys():
-                for i in range(1, len(self.clients_update_w)):
-                    update_w_avg[k] += self.clients_update_w[i][k]
-                update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
-                self.model.state_dict()[k] += update_w_avg[k]
+                for n, update_w in enumerate(self.clients_update_w):
+                    for i in range(len(update_w_avg[k])):
+                        # incremental averaging
+                        update_w_avg[k][i] += (update_w[k][i] - update_w_avg[k][i]) / (n + 1)
+            return update_w_avg, sum(self.clients_loss) / len(self.clients_loss)
 
         else:
             raise NotImplementedError
-
-        return copy.deepcopy(self.model.state_dict()), sum(self.clients_loss) / len(self.clients_loss)
 
     def test(self, datatest):
         self.model.eval()
