@@ -135,7 +135,7 @@ def test_enc_mul_const(bit_len, priv, pub):
 
 if __name__ == '__main__':
     priv, pub = generate_keypair(1024)
-    for bit_len in range(10, 1000, step=10):
+    for bit_len in range(10, 1000, 10):
         elapsed_times = {}
         elapsed_times['enc_add'] = test_enc_add(bit_len, priv, pub)
         elapsed_times['enc_add_const'] = test_enc_add_const(bit_len, priv, pub)

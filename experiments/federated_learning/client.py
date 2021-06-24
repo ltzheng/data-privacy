@@ -3,7 +3,9 @@ from torch import nn, autograd
 from torch.utils.data import DataLoader, Dataset
 from models.Nets import CNNMnist
 import copy
-from paillier_test import enc, dec
+from phe import paillier
+
+global_public_key, global_private_key = paillier.generate_paillier_keypair()
 
 class DatasetSplit(Dataset):
     def __init__(self, dataset, idxs):
@@ -27,14 +29,17 @@ class Client():
         self.model.load_state_dict(w)
         # DP hyperparameters
         self.C = self.args.C
+        # Paillier initialization
+        if self.args.mode == 'Paillier':
+            self.public_key = global_public_key
+            self.private_key = global_private_key
         
     def train(self):
         w_old = copy.deepcopy(self.model.state_dict())
         net = copy.deepcopy(self.model)
 
-        net.train()
-        
-        #train and update
+        # train and update
+        net.train()   
         optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=self.args.momentum)
         for iter in range(self.args.local_ep):
             batch_loss = []
@@ -65,7 +70,14 @@ class Client():
         elif self.args.mode == 'Paillier':  # Paillier encryption
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
-                update_w[k] = enc(update_w[k])
+                origin_shape = list(update_w.size())
+                # flatten update weight
+                update_w = update_w.view(1, -1)
+                # encryption
+                for i, elem in enumerate(update_w):
+                    update_w[i] = self.public_key.encrypt(elem)
+                # reshape to original one
+                update_w = update_w.view(*origin_shape)
         else:
             raise NotImplementedError
 
@@ -75,6 +87,14 @@ class Client():
         if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
         elif self.args.mode == 'Paillier':  # Paillier decryption
-            self.model.load_state_dict(dec(w_glob))
+            origin_shape = list(w_glob.size())
+            # flatten global weight
+            w_glob = w_glob.view(1, -1)
+            # decryption
+            for i, elem in enumerate(w_glob):
+                w_glob[i] = self.private_key.decrypt(elem)
+            # reshape to original one
+            w_glob = w_glob.view(*origin_shape)
+            self.model.load_state_dict(w_glob)
         else:
             raise NotImplementedError
