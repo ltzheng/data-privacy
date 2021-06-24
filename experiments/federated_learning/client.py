@@ -99,8 +99,8 @@ class Client():
                     w_glob[k][i] = self.priv_key.decrypt(elem)
                 # reshape to original and update
                 origin_shape = list(self.model.state_dict()[k].size())
-                w_glob[k] = torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
-                self.model.state_dict()[k] += w_glob[k]
+                update_w = torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
+                self.model.state_dict()[k] += update_w
             dec_end = time.time()
             print('Decryption time:', dec_end - dec_start)
         else:
