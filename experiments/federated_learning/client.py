@@ -5,7 +5,7 @@ from models.Nets import CNNMnist
 import copy
 from phe import paillier
 
-global_public_key, global_private_key = paillier.generate_paillier_keypair()
+global_pub_key, global_priv_key = paillier.generate_paillier_keypair()
 
 class DatasetSplit(Dataset):
     def __init__(self, dataset, idxs):
@@ -31,8 +31,8 @@ class Client():
         self.C = self.args.C
         # Paillier initialization
         if self.args.mode == 'Paillier':
-            self.public_key = global_public_key
-            self.private_key = global_private_key
+            self.pub_key = global_pub_key
+            self.priv_key = global_priv_key
         
     def train(self):
         w_old = copy.deepcopy(self.model.state_dict())
@@ -75,7 +75,7 @@ class Client():
                 update_w[k] = update_w[k].view(1, -1)
                 # encryption
                 for i, elem in enumerate(update_w[k]):
-                    update_w[k][i] = self.public_key.encrypt(elem)
+                    update_w[k][i] = self.pub_key.encrypt(elem)
                 # reshape to original one
                 update_w[k] = update_w[k].view(*origin_shape)
         else:
@@ -93,7 +93,7 @@ class Client():
                 w_glob[k] = w_glob[k].view(1, -1)
                 # decryption
                 for i, elem in enumerate(w_glob[k]):
-                    w_glob[k][i] = self.private_key.decrypt(elem)
+                    w_glob[k][i] = self.priv_key.decrypt(elem)
                 # reshape to original one
                 w_glob[k] = w_glob[k].view(*origin_shape)
             self.model.load_state_dict(w_glob)

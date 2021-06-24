@@ -16,7 +16,7 @@ class Server():
         self.sigma = self.args.sigma
 
     def FedAvg(self):
-        if self.args.mode == 'plain' or self.args.mode == 'Paillier':
+        if self.args.mode == 'plain':
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
             for k in update_w_avg.keys():
                 for i in range(1, len(self.clients_update_w)):
@@ -31,6 +31,14 @@ class Server():
                     update_w_avg[k] += self.clients_update_w[i][k]
                 # add gauss noise
                 update_w_avg[k] += torch.normal(0, self.sigma**2 * self.C**2, update_w_avg[k].shape).to(self.args.device)
+                update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
+                self.model.state_dict()[k] += update_w_avg[k]
+
+        elif self.args.mode == 'Paillier':
+            update_w_avg = copy.deepcopy(self.clients_update_w[0])
+            for k in update_w_avg.keys():
+                for i in range(1, len(self.clients_update_w)):
+                    update_w_avg[k] += self.clients_update_w[i][k]
                 update_w_avg[k] = torch.div(update_w_avg[k], len(self.clients_update_w))
                 self.model.state_dict()[k] += update_w_avg[k]
 
