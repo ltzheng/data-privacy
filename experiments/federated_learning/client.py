@@ -70,14 +70,14 @@ class Client():
         elif self.args.mode == 'Paillier':  # Paillier encryption
             for k in w_new.keys():
                 update_w[k] = w_new[k] - w_old[k]
-                origin_shape = list(update_w.size())
+                origin_shape = list(update_w[k].size())
                 # flatten update weight
-                update_w = update_w.view(1, -1)
+                update_w[k] = update_w[k].view(1, -1)
                 # encryption
-                for i, elem in enumerate(update_w):
-                    update_w[i] = self.public_key.encrypt(elem)
+                for i, elem in enumerate(update_w[k]):
+                    update_w[k][i] = self.public_key.encrypt(elem)
                 # reshape to original one
-                update_w = update_w.view(*origin_shape)
+                update_w[k] = update_w[k].view(*origin_shape)
         else:
             raise NotImplementedError
 
@@ -87,14 +87,15 @@ class Client():
         if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
         elif self.args.mode == 'Paillier':  # Paillier decryption
-            origin_shape = list(w_glob.size())
-            # flatten global weight
-            w_glob = w_glob.view(1, -1)
-            # decryption
-            for i, elem in enumerate(w_glob):
-                w_glob[i] = self.private_key.decrypt(elem)
-            # reshape to original one
-            w_glob = w_glob.view(*origin_shape)
+            for k in w_glob.keys():
+                origin_shape = list(w_glob[k].size())
+                # flatten global weight
+                w_glob[k] = w_glob[k].view(1, -1)
+                # decryption
+                for i, elem in enumerate(w_glob[k]):
+                    w_glob[k][i] = self.private_key.decrypt(elem)
+                # reshape to original one
+                w_glob[k] = w_glob[k].view(*origin_shape)
             self.model.load_state_dict(w_glob)
         else:
             raise NotImplementedError
