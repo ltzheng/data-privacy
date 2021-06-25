@@ -93,14 +93,15 @@ class Client():
             # w_glob is update_w_avg here
             print('decrypting...')
             dec_start = time.time()
+            update_w = copy.deepcopy(w_glob)
             for k in w_glob.keys():
                 # decryption
                 for i, elem in enumerate(w_glob[k]):
-                    w_glob[k][i] = self.priv_key.decrypt(elem)
+                    update_w[k][i] = self.priv_key.decrypt(elem)
                 # reshape to original and update
                 origin_shape = list(self.model.state_dict()[k].size())
-                update_w = torch.FloatTensor(w_glob[k]).to(self.args.device).view(*origin_shape)
-                self.model.state_dict()[k] += update_w
+                update_w[k] = torch.FloatTensor(update_w[k]).to(self.args.device).view(*origin_shape)
+                self.model.state_dict()[k] += update_w[k]
             dec_end = time.time()
             print('Decryption time:', dec_end - dec_start)
         else:
