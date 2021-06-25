@@ -54,10 +54,8 @@ if __name__ == '__main__':
     # training
     print("start training...")
     print('Algorithm:', colored(args.mode, 'green'))
-    # Paillier is too slow, train only 1 epoch as demo
-    num_epochs = 1 if args.mode == 'Paillier' else args.epochs
 
-    for iter in range(num_epochs):
+    for iter in range(args.epochs):
         epoch_start = time.time()
 
         server.clients_update_w, server.clients_loss = [], []
@@ -88,7 +86,7 @@ if __name__ == '__main__':
         all_loss_glob.append(loss_glob)
 
     # plot learning curve
-    x = np.linspace(0, num_epochs - 1, num_epochs)
+    x = np.linspace(0, args.epochs - 1, args.epochs)
     f, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(15, 5))
     plt.suptitle('Learning curves of ' + args.mode)
     ax1.plot(x, all_acc_train)
