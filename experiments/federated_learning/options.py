@@ -19,8 +19,8 @@ def args_parser():
     parser.add_argument('--split', type=str, default='user', help="train-test split type, user or sample")
     
     # DP arguments
-    parser.add_argument('--C', type=int, default=0.5, help="DP model clip parameter")
-    parser.add_argument('--sigma', type=int, default=0.05, help="DP Gauss noise parameter")
+    parser.add_argument('--C', type=float, default=0.5, help="DP model clip parameter")
+    parser.add_argument('--sigma', type=float, default=0.05, help="DP Gauss noise parameter")
 
     # other arguments
     parser.add_argument('--num_classes', type=int, default=10, help="number of classes")
