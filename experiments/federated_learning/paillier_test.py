@@ -1,7 +1,6 @@
 import random, sys 
 import time
-import numpy as np
-from gmpy2 import mpz, powmod, invert, is_prime, random_state, mpz_urandomb, rint_round, log2, gcd 
+from gmpy2 import mpz, powmod, f_div, invert, is_prime, random_state, mpz_urandomb, rint_round, log2, gcd 
 from termcolor import colored
 import matplotlib.pyplot as plt
 
@@ -65,7 +64,7 @@ def dec(priv, pub, cipher):
     """Parameters: private key, public key, cipher"""
     n, n_sq = pub.n, pub.n_sq
     x = powmod(cipher, priv.l, n_sq)
-    L = np.floor((x - 1) // n)
+    L = f_div(x - 1, n)
     plain = powmod(mpz(L * priv.m), 1, n)
     return plain
 
@@ -92,23 +91,21 @@ def test(mode, bit_len, priv, pub):
     a = generate_num(bit_len)
     b = generate_num(bit_len)
     c = generate_num(bit_len)
+
+    enc_start = time.time()
     m1 = enc(pub, a)
     m2 = enc(pub, b)
-
     if mode == 'enc_add':
-        enc_start = time.time()
         enc_plain = enc_add(pub, m1, m2)
         enc_end = time.time()
         ground_truth = powmod(a + b, 1, pub.n)
         print('a:', a, '\tb:', b, '\tground_truth(a+b mod n):', ground_truth)
     elif mode == 'enc_add_const':
-        enc_start = time.time()
         enc_plain = enc_add_const(pub, m1, c)
         enc_end = time.time()
         ground_truth = powmod(a + c, 1, pub.n)
         print('a:', a, '\tc:', c, '\tground_truth(a+c mod n):', ground_truth)
     elif mode == 'enc_mul_const':
-        enc_start = time.time()
         enc_plain = enc_mul_const(pub, m1, c)
         enc_end = time.time()
         ground_truth = powmod(a * c, 1, pub.n)
