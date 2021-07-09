@@ -1,6 +1,9 @@
 import random, sys 
 import time
+import numpy as np
 from gmpy2 import mpz, powmod, invert, is_prime, random_state, mpz_urandomb, rint_round, log2, gcd 
+from termcolor import colored
+import matplotlib.pyplot as plt
 
 rand = random_state(random.randrange(sys.maxsize))
 
@@ -41,103 +44,132 @@ def generate_keypair(bits):
     return PrivateKey(p, q, n), PublicKey(n)
 
 def enc(pub, plain):
-    """
-        parameters: public key, plaintext
-    """
+    """Parameters: public key, plaintext"""
+
     def generate_r(n):
         """generate a random number s.t. gcd(r, n) = 1"""    
         while True:
-            r = mpz(random.randint(1, n-1))
+            r = mpz(random.randint(1, n - 1))
             if gcd(r, n) == 1:
                 return r
+    
+    # Mathematically:
     # (a * b) mod c = (a mod c * b mod c) mod c
     # c = (g^m * r^n) mod n^2 = (g^m mod n^2 * r^n mod n^2) mod n^2
-    g, n = pub.g, pub.n
+    g, n, n_sq = pub.g, pub.n, pub.n_sq
     r = generate_r(n)
-    cipher = powmod(powmod(g, plain, n**2) * powmod(r, n, n**2), 1, n**2)
+    cipher = powmod(powmod(g, plain, n_sq) * powmod(r, n, n_sq), 1, n_sq)
     return cipher
 
 def dec(priv, pub, cipher):
-    """
-        parameters: private key, public key, cipher
-    """
-    n = pub.n
-    x = powmod(cipher, priv.l, n**2)
-    L = mpz(rint_round((x - 1) / n) - 1)
-    plain = powmod(L * priv.m, 1, n)
+    """Parameters: private key, public key, cipher"""
+    n, n_sq = pub.n, pub.n_sq
+    x = powmod(cipher, priv.l, n_sq)
+    L = np.floor((x - 1) // n)
+    plain = powmod(mpz(L * priv.m), 1, n)
     return plain
 
 def enc_add(pub, m1, m2):
-    """add one encrypted integer to another"""
-    return powmod(enc(pub, m1) * enc(pub, m2), 1, pub.n**2)
+    """Add one encrypted integer to another"""
+    return powmod(m1 * m2, 1, pub.n_sq)
 
 def enc_add_const(pub, m, c):
-    """add a constant to an encrypted integer"""
-    return powmod(enc(pub, m) * powmod(pub.g, c, 1), 1, pub.n**2)
+    """Add a constant to an encrypted integer"""
+    n_sq = pub.n_sq
+    return powmod(powmod(m, 1, n_sq) * powmod(pub.g, c, n_sq), 1, n_sq)
 
 def enc_mul_const(pub, m, c):
-    """multiply an encrypted integer by a constant"""
-    return powmod(enc(pub, m), c, pub.n**2)
+    """Multiply an encrypted integer by a constant"""
+    return powmod(m, c, pub.n_sq)
 
-def test_enc_add(bit_len, priv, pub):
+def test(mode, bit_len, priv, pub):
+
+    def generate_num(bit_len):
+        return mpz(2)**(bit_len - 1) + mpz_urandomb(rand, bit_len - 1)
+    
     elapsed_times = {}
-    print('=====test enc_add=====')
-    m1, m2 = mpz_urandomb(rand, bit_len - 1), mpz_urandomb(rand, bit_len - 1)
+    print('=====TEST ' + mode + '=====')
+    a = generate_num(bit_len)
+    b = generate_num(bit_len)
+    c = generate_num(bit_len)
+    m1 = enc(pub, a)
+    m2 = enc(pub, b)
+
     enc_start = time.time()
-    enc_plain = enc_add(pub, m1, m2)
+    if mode == 'enc_add':
+        enc_plain = enc_add(pub, m1, m2)
+        ground_truth = powmod(a + b, 1, pub.n)
+        print('a:', a, '\tb:', b, '\tground_truth(a+b mod n):', ground_truth)
+    elif mode == 'enc_add_const':
+        enc_plain = enc_add_const(pub, m1, c)
+        ground_truth = powmod(a + c, 1, pub.n)
+        print('a:', a, '\tc:', c, '\tground_truth(a+c mod n):', ground_truth)
+    elif mode == 'enc_mul_const':
+        enc_plain = enc_mul_const(pub, m1, c)
+        ground_truth = powmod(a * c, 1, pub.n)
+        print('a:', a, '\tc:', c, '\tground_truth(a*c mod n):', ground_truth)
+    else:
+        raise NotImplementedError
     enc_end = time.time()
+
     dec_start = time.time()
     dec_cipher = dec(priv, pub, enc_plain)
     dec_end = time.time()
-    print('decrypted:', dec_cipher)
-    print('ground truth:', powmod(m1 + m2, 1, pub.n))
+    print('dec_cipher:', dec_cipher)
+
+    if dec_cipher == ground_truth:
+        print(colored('=====PASS=====', 'green'))
+    else:
+        print(colored('=====FAIL=====', 'red'))
+    
     elapsed_times['enc'] = enc_end - enc_start
     elapsed_times['dec'] = dec_end - dec_start
-    print('elapsed time of encryption:', elapsed_times['enc'])
-    print('elapsed time of decryption:', elapsed_times['dec'])
     return elapsed_times
 
-def test_enc_add_const(bit_len, priv, pub):
-    elapsed_times = {}
-    print('=====test enc_add_const=====')
-    m1, c = mpz_urandomb(rand, bit_len - 1), mpz_urandomb(rand, bit_len - 1)
-    enc_start = time.time()
-    enc_plain = enc_add_const(pub, m1, c)
-    enc_end = time.time()
-    dec_start = time.time()
-    dec_cipher = dec(priv, pub, enc_plain)
-    dec_end = time.time()
-    print('decrypted:', dec_cipher)
-    print('ground truth:', powmod(m1 + c, 1, pub.n))
-    elapsed_times['enc'] = enc_end - enc_start
-    elapsed_times['dec'] = dec_end - dec_start
-    print('elapsed time of encryption:', elapsed_times['enc'])
-    print('elapsed time of decryption:', elapsed_times['dec'])
-    return elapsed_times
-
-def test_enc_mul_const(bit_len, priv, pub):
-    elapsed_times = {}
-    print('=====test enc_mul_const=====')
-    m1, k = mpz_urandomb(rand, bit_len - 1), mpz_urandomb(rand, bit_len - 1)
-    enc_start = time.time()
-    enc_plain = enc_mul_const(pub, m1, k)
-    enc_end = time.time()
-    dec_start = time.time()
-    dec_cipher = dec(priv, pub, enc_plain)
-    dec_end = time.time()
-    print('decrypted:', dec_cipher)
-    print('ground truth:', powmod(k * m1, 1, pub.n))
-    elapsed_times['enc'] = enc_end - enc_start
-    elapsed_times['dec'] = dec_end - dec_start
-    print('elapsed time of encryption:', elapsed_times['enc'])
-    print('elapsed time of decryption:', elapsed_times['dec'])
-    return elapsed_times
 
 if __name__ == '__main__':
     priv, pub = generate_keypair(1024)
-    for bit_len in range(10, 1000, 10):
+    add_enc_times = []
+    add_dec_times = []
+    add_const_enc_times = []
+    add_const_dec_times = []
+    mul_const_enc_times = []
+    mul_const_dec_times = []
+
+    for bit_len in range(10, 1000 + 10, 10):
         elapsed_times = {}
-        elapsed_times['enc_add'] = test_enc_add(bit_len, priv, pub)
-        elapsed_times['enc_add_const'] = test_enc_add_const(bit_len, priv, pub)
-        elapsed_times['enc_mul_const'] = test_enc_mul_const(bit_len, priv, pub)
-        print(elapsed_times)
+        elapsed_times['enc_add'] = test('enc_add', bit_len, priv, pub)
+        elapsed_times['enc_add_const'] = test('enc_add_const', bit_len, priv, pub)
+        elapsed_times['enc_mul_const'] = test('enc_mul_const', bit_len, priv, pub)
+        
+        add_enc_times.append(elapsed_times['enc_add']['enc'])
+        add_dec_times.append(elapsed_times['enc_add']['dec'])
+        add_const_enc_times.append(elapsed_times['enc_add_const']['enc'])
+        add_const_dec_times.append(elapsed_times['enc_add_const']['dec'])
+        mul_const_enc_times.append(elapsed_times['enc_mul_const']['enc'])
+        mul_const_dec_times.append(elapsed_times['enc_mul_const']['dec'])
+
+    # plot elapsed times
+    x = list(range(10, 1000 + 10, 10))
+    f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(3, 2, figsize=(10, 15))
+    plt.suptitle('Elapsed times of Paillier')
+    ax1.plot(x, add_enc_times)
+    ax1.set_xlabel('Bits')
+    ax1.set_ylabel('Add encryption time')
+    ax2.plot(x, add_dec_times)
+    ax2.set_xlabel('Bits')
+    ax2.set_ylabel('Add decryption time')
+    ax3.plot(x, add_const_enc_times)
+    ax3.set_xlabel('Bits')
+    ax3.set_ylabel('Add const encryption time')
+    ax4.plot(x, add_const_dec_times)
+    ax4.set_xlabel('Bits')
+    ax4.set_ylabel('Add const decryption time')
+    ax5.plot(x, mul_const_enc_times)
+    ax5.set_xlabel('Bits')
+    ax5.set_ylabel('Mul const encryption time')
+    ax6.plot(x, mul_const_dec_times)
+    ax6.set_xlabel('Bits')
+    ax6.set_ylabel('Mul const decryption time')
+    plt.savefig('figs/paillier_time.png')
+    plt.show()

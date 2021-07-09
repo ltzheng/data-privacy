@@ -38,11 +38,18 @@ class Server():
 
         elif self.args.mode == 'Paillier':
             update_w_avg = copy.deepcopy(self.clients_update_w[0])
-            for k in update_w_avg.keys():
-                for n, update_w in enumerate(self.clients_update_w):
-                    for i in range(len(update_w_avg[k])):
-                        # incremental averaging
-                        update_w_avg[k][i] += (update_w[k][i] - update_w_avg[k][i]) / (n + 1)
+            # for k in update_w_avg.keys():
+            #     for n, update_w in enumerate(self.clients_update_w):
+            #         for i in range(len(update_w_avg[k])):
+            #             # incremental averaging
+            #             update_w_avg[k][i] += (update_w[k][i] - update_w_avg[k][i]) / (n + 1)
+            # return update_w_avg, sum(self.clients_loss) / len(self.clients_loss)
+            for k in enumerate(update_w_avg.keys()):
+                for i in range(1, len(self.clients_update_w)):  # client-wise sum
+                    for j, elem in enumerate(self.clients_update_w[i][k]):  # element-wise sum
+                        update_w_avg[k][j] += elem
+                for j, elem in enumerate(update_w_avg[k]):  # element-wise avg
+                    update_w_avg[k][j] = update_w_avg[k][j] * (1 / len(self.clients_update_w))
             return update_w_avg, sum(self.clients_loss) / len(self.clients_loss)
 
         else:
