@@ -95,22 +95,26 @@ def test(mode, bit_len, priv, pub):
     m1 = enc(pub, a)
     m2 = enc(pub, b)
 
-    enc_start = time.time()
     if mode == 'enc_add':
+        enc_start = time.time()
         enc_plain = enc_add(pub, m1, m2)
+        enc_end = time.time()
         ground_truth = powmod(a + b, 1, pub.n)
         print('a:', a, '\tb:', b, '\tground_truth(a+b mod n):', ground_truth)
     elif mode == 'enc_add_const':
+        enc_start = time.time()
         enc_plain = enc_add_const(pub, m1, c)
+        enc_end = time.time()
         ground_truth = powmod(a + c, 1, pub.n)
         print('a:', a, '\tc:', c, '\tground_truth(a+c mod n):', ground_truth)
     elif mode == 'enc_mul_const':
+        enc_start = time.time()
         enc_plain = enc_mul_const(pub, m1, c)
+        enc_end = time.time()
         ground_truth = powmod(a * c, 1, pub.n)
         print('a:', a, '\tc:', c, '\tground_truth(a*c mod n):', ground_truth)
     else:
         raise NotImplementedError
-    enc_end = time.time()
 
     dec_start = time.time()
     dec_cipher = dec(priv, pub, enc_plain)
@@ -151,7 +155,7 @@ if __name__ == '__main__':
 
     # plot elapsed times
     x = list(range(10, 1000 + 10, 10))
-    f, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(3, 2, figsize=(10, 15))
+    f, ((ax1, ax2, ax7), (ax3, ax4, ax8), (ax5, ax6, ax9)) = plt.subplots(ncols=3, nrows=3, figsize=(15, 15))
     plt.suptitle('Elapsed times of Paillier')
     ax1.plot(x, add_enc_times)
     ax1.set_xlabel('Bits')
@@ -171,5 +175,14 @@ if __name__ == '__main__':
     ax6.plot(x, mul_const_dec_times)
     ax6.set_xlabel('Bits')
     ax6.set_ylabel('Mul const decryption time')
+    ax7.plot(x, [t1 + t2 for t1, t2 in zip(add_enc_times, add_dec_times)])
+    ax7.set_xlabel('Bits')
+    ax7.set_ylabel('Add total time')
+    ax8.plot(x, [t1 + t2 for t1, t2 in zip(add_const_enc_times, add_const_dec_times)])
+    ax8.set_xlabel('Bits')
+    ax8.set_ylabel('Add const total time')
+    ax9.plot(x, [t1 + t2 for t1, t2 in zip(mul_const_enc_times, mul_const_dec_times)])
+    ax9.set_xlabel('Bits')
+    ax9.set_ylabel('Mul const total time')
     plt.savefig('figs/paillier_time.png')
     plt.show()
