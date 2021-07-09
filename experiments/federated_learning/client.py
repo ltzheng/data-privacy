@@ -90,18 +90,18 @@ class Client():
         if self.args.mode == 'plain' or self.args.mode == 'DP':
             self.model.load_state_dict(w_glob)
         elif self.args.mode == 'Paillier':  # Paillier decryption
-            # w_glob is update_w_avg here
+            # for paillier, w_glob is update_w_avg here
+            update_w_avg = copy.deepcopy(w_glob)
             print('decrypting...')
             dec_start = time.time()
-            update_w = copy.deepcopy(w_glob)
-            for k in w_glob.keys():
+            for k in update_w_avg.keys():
                 # decryption
-                for i, elem in enumerate(w_glob[k]):
-                    update_w[k][i] = self.priv_key.decrypt(elem)
+                for i, elem in enumerate(update_w_avg[k]):
+                    update_w_avg[k][i] = self.priv_key.decrypt(elem)
                 # reshape to original and update
                 origin_shape = list(self.model.state_dict()[k].size())
-                update_w[k] = torch.FloatTensor(update_w[k]).to(self.args.device).view(*origin_shape)
-                self.model.state_dict()[k] += update_w[k]
+                update_w_avg[k] = torch.FloatTensor(update_w_avg[k]).to(self.args.device).view(*origin_shape)
+                self.model.state_dict()[k] += update_w_avg[k]
             dec_end = time.time()
             print('Decryption time:', dec_end - dec_start)
         else:

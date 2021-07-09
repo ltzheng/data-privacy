@@ -75,6 +75,9 @@ if __name__ == '__main__':
         print(colored('=====Epoch {:3d}====='.format(iter), 'yellow'))
         print('Training time:', epoch_end - epoch_start)
 
+        if args.mode == 'Paillier':
+            server.model.load_state_dict(copy.deepcopy(clients[0].model.state_dict()))
+
         # testing
         acc_train, loss_train = server.test(dataset_train)
         acc_test, loss_test = server.test(dataset_test)
