@@ -1,6 +1,7 @@
 import random, sys 
 import time
-from gmpy2 import mpz, powmod, invert, is_prime, random_state, mpz_urandomb, rint_round, rint_floor, log2, gcd 
+import numpy as np
+from gmpy2 import mpz, powmod, invert, is_prime, random_state, mpz_urandomb, rint_round, log2, gcd 
 from termcolor import colored
 
 rand = random_state(random.randrange(sys.maxsize))
@@ -63,7 +64,7 @@ def dec(priv, pub, cipher):
     """Parameters: private key, public key, cipher"""
     n, n_sq = pub.n, pub.n_sq
     x = powmod(cipher, priv.l, n_sq)
-    L = rint_floor((x - 1) // n)
+    L = np.floor((x - 1) // n)
     plain = powmod(mpz(L * priv.m), 1, n)
     return plain
 
@@ -93,20 +94,19 @@ def test(mode, bit_len, priv, pub):
     m2 = enc(pub, b)
 
     enc_start = time.time()
-    
     if mode == 'enc_add':
         enc_plain = enc_add(pub, m1, m2)
-        ground_truth = a + b
+        ground_truth = powmod(a + b, 1, pub.n)
     elif mode == 'enc_add_const':
         enc_plain = enc_add_const(pub, m1, c)
-        ground_truth = a + c
+        ground_truth = powmod(a + c, 1, pub.n)
     elif mode == 'enc_mul_const':
         enc_plain = enc_mul_const(pub, m1, c)
-        ground_truth = a * c
+        ground_truth = powmod(a * c, 1, pub.n)
     else:
         raise NotImplementedError
-
     enc_end = time.time()
+
     dec_start = time.time()
     dec_cipher = dec(priv, pub, enc_plain)
     dec_end = time.time()
