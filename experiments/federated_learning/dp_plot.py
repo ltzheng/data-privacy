@@ -11,8 +11,8 @@ import re
 def compute_epsilon(C, sigma):
     return math.sqrt(2 * math.log(math.e, 1.25 / 1e-3)) * C / sigma
 
-C_list = np.arange(0.05, 2, 0.05)
-sigma_list = np.arange(0.025, 1, 0.025)
+C_list = np.arange(0.1, 1.1, 0.2)
+sigma_list = np.arange(0.1, 0.5, 0.1)
 
 train_acc_map = {C: dict.fromkeys(sigma_list) for C in C_list}
 test_acc_map = copy.deepcopy(train_acc_map)
@@ -21,15 +21,19 @@ epsilon_map = copy.deepcopy(train_acc_map)
 
 for C in C_list:
     for sigma in sigma_list:
+        print('Running DP with C:', C, '\tsigma:', sigma)
         epsilon_map[C][sigma] = compute_epsilon(C, sigma)
 
-        cmd = "python main.py --mode DP --gpu 0 \
+        cmd = "python main.py --mode DP --gpu 0 --no-plot --epoch 2\
             --C " + str(C) + " --sigma " + str(sigma)
         proc = subprocess.Popen(cmd, -1, stdout=subprocess.PIPE, shell=True)
         out, _ = proc.communicate()
+        out = out.decode('utf-8')
+        print('out:', out)
 
         train_acc, test_acc, loss = [float(x) \
-            for x in re.findall(r"[-+]?\d*\.\d+|\d+", out)[-4:-1]]
+            for x in re.findall(r"[-+]?\d*\.\d+|\d+", out)[-3:]]
+        print(train_acc, test_acc, loss)
         train_acc_map[C][sigma] = train_acc
         test_acc_map[C][sigma] = test_acc
         loss_map[C][sigma] = loss

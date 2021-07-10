@@ -26,6 +26,6 @@ def args_parser():
     parser.add_argument('--num_classes', type=int, default=10, help="number of classes")
     parser.add_argument('--num_channels', type=int, default=1, help="number of channels of imges")
     parser.add_argument('--gpu', type=int, default=0, help="GPU ID, -1 for CPU")
-
+    parser.add_argument('--no-plot', action="store_true", default=False, help="plot learning curve")
     args = parser.parse_args()
     return args
