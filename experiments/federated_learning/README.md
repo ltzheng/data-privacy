@@ -21,19 +21,19 @@ In addition, `torch` is the framework for training.
 
 #### Plain
 
-Run with CPU:
+Run in CPU:
 
 ```bash
 python main.py --gpu -1
 ```
 
-Run with GPU(ID=0):
+Run in GPU(ID=0):
 
 ```bash
 python main.py --gpu 0
 ```
 
-Results:
+Example results (more graphs are illustrated in the following sections):
 
 > Note: Through this report, the elapsed time is measured by seconds.
 
@@ -41,27 +41,35 @@ Results:
 
 #### Differential Privacy
 
-run with GPU(ID=0):
+Run in GPU(ID=0) with default $C=0.5$ and $\sigma=0.05$:
 
 ```bash
 python main.py --gpu 0 --mode DP
 ```
 
-Results:
+Example results:
 
 ![](figs/dp_default.png)
 
 #### Paillier
 
-run with GPU(ID=0):
+run in GPU(ID=0):
 
 ```bash
 python main.py --gpu 0 --mode Paillier
 ```
 
-Results:
+Example results:
+
+Besides training time, accuracy and loss, the time of paillier encryption and decryption is also measured.
+
+Epoch 1:
 
 ![](figs/paillier.png)
+
+After training 6 epochs:
+
+![](figs/paillier2.png)
 
 See more argument options in [options.py](options.py).
 
@@ -69,9 +77,13 @@ See more argument options in [options.py](options.py).
 
 ### Key Implementation
 
+$$
+w_{t+1}=w_t+\frac{1}{k}(\sum_{i=0}^{k}\Delta w^i/max(1,\frac{\|\Delta w^i\|_2}{C})+N(0,\sigma^2C^2I))
+$$
+
 #### Server code
 
-In `FedAvg` method:
+In `FedAvg` method, add gauss noise $N(0,\sigma^2C^2I)$ for the update weight sum and then apply the average operation.
 
 ```py
 elif self.args.mode == 'DP':  # DP mechanism
@@ -87,7 +99,7 @@ elif self.args.mode == 'DP':  # DP mechanism
 
 #### Client code
 
-In `train` method:
+In `train` method, replace the $\sum_{i=0}^{k} \Delta w^i$ in plain federated learning with $\sum_{i=0}^{k}\Delta w^i/max(1,\frac{\|\Delta w^i\|_2}{C})$ as the following code.
 
 ```py
 elif self.args.mode == 'DP':  # DP mechanism
@@ -108,14 +120,14 @@ if self.args.mode == 'plain' or self.args.mode == 'DP':
 
 #### Add DP default arguments
 
-Both in `options.py` and the `__init__` methods of clients and server
+Both in `options.py` and the `__init__` methods of clients and server.
 
 In `options.py`:
 
 ```py
 # DP arguments
-parser.add_argument('--C', type=int, default=0.5, help="DP model clip parameter")
-parser.add_argument('--sigma', type=int, default=0.05, help="DP Gauss noise parameter")
+parser.add_argument('--C', type=float, default=0.5, help="DP model clip parameter")
+parser.add_argument('--sigma', type=float, default=0.05, help="DP Gauss noise parameter")
 ```
 
 In `__init__` method of clients:
@@ -135,13 +147,23 @@ self.sigma = self.args.sigma
 
 ### Experiments
 
-The influence of $\sigma, C$ for model's accuracy
+### Influence of $\sigma, C$ for model's accuracy
 
-Accordingly, the $\epsilon$ is ($\delta = 10^{-3}$)
+Experiment condition: $C \in [0.1, 0.9]$ and $\sigma \in [0.1, 0.4]$ (due to limited computation resource). The experiment code is implemented in [dp_plot.py](dp_plot.py). The results are both in the graph below. Each training/testing accuracy and loss are measured after training **2 epochs** (again, due to limited computation resource).
+
+Results in terminal:
+
+![](figs/dp_exp.png)
+
+3D visualization:
+
+![](figs/)
+
+With $\delta = 10^{-3}$, the according $\epsilon$ is shown in the table below.
 
 ### Bonus
 
-When $\sigma$ is small, it may result in $\epsilon \geq 1$, which contradicts the condition of theorem 3.22 (Classical Gauss Mechanism).
+When $\sigma$ is small, it may result in $\epsilon \geq 1$, which contradicts the condition of theorem 3.22 (i.e. Classical Gauss Mechanism).
 
 To address this issue, I investigate several papers:
 
@@ -151,19 +173,37 @@ To address this issue, I investigate several papers:
 
 3) Fang Liu. *Generalized Gaussian Mechanism for Differential Privacy* [[TKDE 2019](https://arxiv.org/pdf/1602.06028.pdf)].
 
+and conclude the following points.
+
+#### Usage of $\epsilon > 1$
+
+Although $\epsilon \leq 1$ is preferred in practical applications, there are still cases where $\epsilon > 1$ is used, so it is necessary to have Gaussian mechanisms which apply to not only $\epsilon \leq 1$ but also $\epsilon > 1$. For example, the Differential Privacy Synthetic Data Challenge organized by the National Institute of Standards and Technology (NIST) included experiments of $\epsilon$ as 10. Also, for a variant of differential privacy called **local differential privacy** which is implemented in several industrial applications (e.g. Apple and Google) have adopted $\epsilon > 1$.
+
 #### Classical Gaussian Mechanism cannot be extended to $\epsilon > 1$
 
 In section 2.3 of the 1st paper, the authors answer the **question**: whether the order of magnitude $\sigma = \Theta(1/\epsilon)$ for $\epsilon \leq 1$ can be extended to privacy parameters of the form $\epsilon > 1$?
 
 They show this is not the case by providing the **lower bound** $\sigma \geq \Delta/\sqrt{2\epsilon}$ (theorem 4 in the paper). As $\epsilon \rightarrow \infty$, the upper bound on $\delta$ converges to $1/2$. Thus, as $\epsilon$ increases the range of $\delta$'s requiring noise of the order $\Omega(1/\sqrt{\epsilon})$ increases to include all parameters of practical interest. This shows that the rate $\sigma = \Theta(1/\epsilon)$ provided by the classical Gaussian mechanism **cannot be extended** beyond the interval $\epsilon \in (0, 1)$.
 
-#### Other mechanisms that address this issue
+In the 2nd paper, the fact that classical Gaussian mechanism do not achieve $(\epsilon, \delta)$-DP for large $\epsilon$ given $\delta$ is also shown.
 
-##### The Analytic Gaussian Mechanism
+#### Mechanisms that address this issue
 
-In the 1st paper, the authors address these limitations by developing an **optimal Gaussian mechanism** whose **variance is calibrated directly using the Gaussian cumulative density function instead of a tail bound approximation**. 
+##### The Analytic Gaussian Mechanism (1st paper)
+
+In the 1st paper, the authors address these limitations by developing an **optimal Gaussian mechanism** whose **variance is calibrated directly using the Gaussian cumulative density function instead of a tail bound approximation**.
+
+![](figs/analytic_gauss_mechanism.png)
+
+This algorithm is proven to satisfy $(\epsilon, \delta)$-DP theorem 8 of that paper, 
+
 
 In the 1st paper also propose to **equip the Gaussian mechanism with a post-processing step based on adaptive estimation techniques** by leveraging that the **distribution of the perturbation is known**.
+
+##### New Gaussian Mechanisms proposed by Jun Zhao et al. (2nd paper)
+
+In the 2nd paper, the authors propose Gaussian mechanisms by deriving closed-form upper bounds for $\sigma_{DP-OPT}$. Their mechanisms achieve
+$(\epsilon, \delta)$-DP for **any** $\epsilon$, while the classical Gaussian mechanisms do not.
 
 ---
 
@@ -261,6 +301,8 @@ In this implementation of paillier federated learning, the server only conduct t
 correct
 
 running time in MNIST
+
+![](figs/paillier_training_curve.png)
 
 ### References
 
