@@ -1,22 +1,4 @@
-# data-privacy-ustc
-
-Asssignments and labs for the course *Methodology, Ethic, Pratice of Data Privacy* at University of Science and Technology of China.
-
-Lecturer: Prof. Lan Zhang
-
-## Assignments
-
-### Basics of Anonymity
-
-- (c,l)-diversity
-- k-anonymity
-- (alpha,beta)-privacy
-
-
-### Differential Privacy (DP)
-
-- Basics of DP
-- Local DP
+# Data Privacy
 
 ## Experiments
 
@@ -26,13 +8,22 @@ Lecturer: Prof. Lan Zhang
 
 - Mondrian
 
-
-### Federated Learning
+### Privacy Preserving Federated Learning
 
 - Differential Privacy
 
-  - Differentially Private SGD (DP SGD)
-
+  - Gauss Mechanism
 
 - Secure Multi-Party Computation
+
   - Paillier Homomorphic Encryption
+
+Detailed reports are inside the two directories.
+
+## Assignments
+
+### Basics of Privacy
+
+### Differential Privacy
+
+### Cryptography & Security
