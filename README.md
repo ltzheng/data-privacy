@@ -12,7 +12,7 @@
 
 - Differential Privacy
 
-  - Gauss Mechanism
+  - Gaussian Mechanism
 
 - Secure Multi-Party Computation
 
@@ -22,8 +22,8 @@ Detailed reports are inside the two directories.
 
 ## Assignments
 
-### Basics of Privacy
+### HW1: Basics of Privacy
 
-### Differential Privacy
+### HW2: Differential Privacy
 
-### Cryptography & Security
+### HW3: Cryptography & Security
