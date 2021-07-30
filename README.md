@@ -24,6 +24,38 @@ Detailed reports are inside the two directories.
 
 ### HW1: Basics of Privacy
 
-### HW2: Differential Privacy
+- (c, l)-diversity
+
+- quasi-identifier & full domain generalization & suppression
+
+- t-closeness & Earth Mover's distance
+
+- k-anonymity
+
+- prior and posterior probabilities & mutual information
+
+- (α, β)-privacy & γ-amplifying
+
+### HW2: Differential Privacy (DP)
+
+- (ε, δ)-DP
+
+- local DP
+
+- sensitivity; laplace, gussian, and exponential mechanisms
+
+- composition theorem & advanced composition theorem
+
+- random subsampling
 
 ### HW3: Cryptography & Security
+
+- one time pad
+
+- interchangeble libraries
+
+- negligible functions
+
+- pseudo random generator (PRG)
+
+- RSA

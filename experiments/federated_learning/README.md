@@ -549,7 +549,7 @@ if args.mode == 'Paillier':
 
 The train/test accuracy and loss are shown below. The learning curves is similar to the results in plain federated learning, and the accuracy is high. Thus, it is reasonable that the implementation is correct (the results of plain version is shown in the next section).
 
-![](figs/paillier_training_curve.png)
+![](figs/Paillier_training_curve.png)
 
 ##### Running time in MNIST
 
@@ -583,10 +583,3 @@ In contrast, running plain version only takes near 36 seconds per epoch (shown i
 4) NhatHai Phan et al. *Heterogeneous Gaussian Mechanism: Preserving Differential Privacy in Deep Learning with Provable Robustness*. [[arXiv 2019](https://arxiv.org/pdf/1906.01444.pdf)].
 
 5) **Methodology, Ethics and Practice of Data Privacy** Course at University of Science and Technology of China. 2021 Spring. (**Lecturer: Prof. Lan Zhang**).
-
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });
-    </script>
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-<script type="text/x-mathjax-config"> MathJax.Hub.Config({ tex2jax: {inlineMath: [['$', '$']]}, messageStyle: "none" });</script>
