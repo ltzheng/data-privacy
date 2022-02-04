@@ -1,6 +1,5 @@
 # Privacy Preserving Federated Learning
 
-**郑龙韬 PB18061352**
 **7/10/2021**
 
 ## User Guide

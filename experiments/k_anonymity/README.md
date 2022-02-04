@@ -1,6 +1,5 @@
 # K-Anonymity
 
-**郑龙韬 PB18061352**
 **5/20/2021**
 
 ## Problem Statement
